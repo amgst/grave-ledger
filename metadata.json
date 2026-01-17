@@ -1,0 +1,8 @@
+
+{
+  "name": "Local Grave Ledger",
+  "description": "Simplified graveyard record management for small local cemeteries with AI Urdu OCR support.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

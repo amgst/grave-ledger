@@ -59,12 +59,12 @@ const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, su
   const handleScanImage = async () => {
     if (!formData.imageUrl) return alert("براہ کرم پہلے تصویر اپ لوڈ کریں۔");
     setIsScanning(true);
-    
+
     try {
       const base64Data = formData.imageUrl.split(',')[1];
       const mimeType = formData.imageUrl.split(';')[0].split(':')[1];
       const result = await extractGraveInfoFromImage(base64Data, mimeType);
-      
+
       if (result) {
         setFormData(prev => ({
           ...prev,
@@ -76,9 +76,9 @@ const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, su
           notes: result.notes ? `${prev.notes}\n\nخودکار معلومات: ${result.notes}`.trim() : prev.notes,
           gender: result.gender === 'Female' ? Gender.FEMALE : (result.gender === 'Male' ? Gender.MALE : prev.gender),
           // Only override grave number from scan if AI found something specific, otherwise keep suggestion
-          graveNumber: result.graveNumber || prev.graveNumber 
+          graveNumber: result.graveNumber || prev.graveNumber
         }));
-        
+
         // If AI calculated or extracted the age, set it
         if (result.ageAtDeath !== undefined && result.ageAtDeath !== null) {
           setAgeAtDeath(result.ageAtDeath);
@@ -127,20 +127,20 @@ const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, su
 
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
         <label className={labelClass}><Camera size={14} /> قبر کی تصویر</label>
-        
+
         {formData.imageUrl ? (
           <div className="relative rounded-2xl overflow-hidden group border border-slate-200 aspect-[9/16] max-h-[400px] bg-slate-100 mx-auto">
             <img src={formData.imageUrl} className="w-full h-full object-cover" alt="Grave" />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="p-3 bg-white text-slate-700 rounded-full shadow-lg"
               >
                 <Upload size={20} />
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
                 className="p-3 bg-red-500 text-white rounded-full shadow-lg"
               >
@@ -158,13 +158,14 @@ const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, su
             <span className="font-semibold text-sm">تصویر لیں یا اپ لوڈ کریں</span>
           </button>
         )}
-        
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
-          accept="image/*" 
-          onChange={handleImageUpload} 
+
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/*"
+          capture="environment"
+          onChange={handleImageUpload}
         />
 
         {formData.imageUrl && (

@@ -3,6 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GraveRecord, Gender } from '../types';
 import { Sparkles, User, Calendar, Hash, ArrowRight, Phone, Heart, Camera, Upload, Trash2, Loader2, Info } from 'lucide-react';
 import { suggestNotes, extractGraveInfoFromImage } from '../services/geminiService';
+import { storage } from '../services/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface GraveFormProps {
   onSave: (record: Omit<GraveRecord, 'id' | 'createdAt'>) => void;
@@ -28,6 +30,7 @@ const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, su
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [ageAtDeath, setAgeAtDeath] = useState<number>(initialData?.ageAtDeath || 0);
 
   // Manual trigger for age calculation if dates are changed manually
@@ -45,14 +48,31 @@ const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, su
     }
   }, [formData.dateOfBirth, formData.dateOfDeath]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+      if (!storage) {
+        // Fallback for when storage is not configured yet (or if import fails)
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      setIsUploading(true);
+      try {
+        const storageRef = ref(storage, `grave-images/${Date.now()}_${file.name}`);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        setFormData(prev => ({ ...prev, imageUrl: url }));
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        alert("تصویر اپ لوڈ کرنے میں غلطی ہوئی۔");
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -136,8 +156,9 @@ const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, su
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="p-3 bg-white text-slate-700 rounded-full shadow-lg"
+                disabled={isUploading}
               >
-                <Upload size={20} />
+                {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
               </button>
               <button
                 type="button"
@@ -152,10 +173,20 @@ const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, su
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
             className="w-full aspect-[9/16] max-h-[400px] border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-emerald-500 hover:text-emerald-500 transition-all bg-slate-50 mx-auto"
           >
-            <Camera size={32} />
-            <span className="font-semibold text-sm">تصویر لیں یا اپ لوڈ کریں</span>
+            {isUploading ? (
+              <>
+                <Loader2 size={32} className="animate-spin" />
+                <span className="font-semibold text-sm">اپ لوڈ ہو رہا ہے...</span>
+              </>
+            ) : (
+              <>
+                <Camera size={32} />
+                <span className="font-semibold text-sm">تصویر لیں یا اپ لوڈ کریں</span>
+              </>
+            )}
           </button>
         )}
 

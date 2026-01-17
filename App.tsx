@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
+import { collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
+import { db } from './services/firebase';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import GraveTable from './components/GraveTable';
@@ -7,55 +9,28 @@ import GraveForm from './components/GraveForm';
 import AIAssistant from './components/AIAssistant';
 import { GraveRecord, Gender } from './types';
 
-const INITIAL_DATA: GraveRecord[] = [
-  {
-    id: '1',
-    deceasedFullName: 'الینور وینس',
-    parentNames: 'ساموئیل اور مارتھا وینس',
-    husbandName: 'رابرٹ وینس',
-    relativeContact: '+92 300 1234567',
-    dateOfBirth: '1945-05-12',
-    dateOfDeath: '2023-11-04',
-    ageAtDeath: 78,
-    gender: Gender.FEMALE,
-    graveNumber: '101',
-    notes: 'علاقے کی مشہور استانی اور مخلص خاتون۔',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    deceasedFullName: 'ارتھر پنہالیگن',
-    parentNames: 'ایڈورڈ پنہالیگن',
-    relativeContact: '+92 300 7654321',
-    dateOfBirth: '1960-01-22',
-    dateOfDeath: '2024-02-15',
-    ageAtDeath: 64,
-    gender: Gender.MALE,
-    graveNumber: '102',
-    notes: 'ایک مخلص سماجی کارکن۔',
-    createdAt: new Date().toISOString()
-  }
-];
-
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [records, setRecords] = useState<GraveRecord[]>([]);
   const [editingRecord, setEditingRecord] = useState<GraveRecord | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem('small_grave_records_v3_urdu');
-    if (saved) {
-      setRecords(JSON.parse(saved));
-    } else {
-      setRecords(INITIAL_DATA);
-    }
+    const q = query(collection(db, 'graves'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedRecords = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as GraveRecord[];
+      setRecords(fetchedRecords);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching records: ", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
-
-  useEffect(() => {
-    if (records.length > 0) {
-      localStorage.setItem('small_grave_records_v3_urdu', JSON.stringify(records));
-    }
-  }, [records]);
 
   const getNextGraveNumber = () => {
     if (records.length === 0) return "1";
@@ -63,24 +38,30 @@ const App: React.FC = () => {
     const numbers = records
       .map(r => parseInt(r.graveNumber.replace(/\D/g, '')))
       .filter(n => !isNaN(n));
-    
+
     if (numbers.length === 0) return (records.length + 1).toString();
     return (Math.max(...numbers) + 1).toString();
   };
 
-  const handleSaveRecord = (formData: Omit<GraveRecord, 'id' | 'createdAt'>) => {
-    if (editingRecord) {
-      setRecords(prev => prev.map(r => r.id === editingRecord.id ? { ...formData, id: r.id, createdAt: r.createdAt } : r));
-    } else {
-      const newRecord: GraveRecord = {
-        ...formData,
-        id: Math.random().toString(36).substr(2, 9),
-        createdAt: new Date().toISOString()
-      };
-      setRecords(prev => [newRecord, ...prev]);
+  const handleSaveRecord = async (formData: Omit<GraveRecord, 'id' | 'createdAt'>) => {
+    try {
+      if (editingRecord) {
+        const recordRef = doc(db, 'graves', editingRecord.id);
+        await updateDoc(recordRef, {
+          ...formData
+        });
+      } else {
+        await addDoc(collection(db, 'graves'), {
+          ...formData,
+          createdAt: new Date().toISOString()
+        });
+      }
+      setEditingRecord(null);
+      setActiveTab('records');
+    } catch (e) {
+      console.error("Error saving document: ", e);
+      alert("Error saving record. Please try again.");
     }
-    setEditingRecord(null);
-    setActiveTab('records');
   };
 
   const handleEdit = (record: GraveRecord) => {
@@ -89,6 +70,10 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
+    if (loading) {
+      return <div className="p-8 text-center">Loading data...</div>;
+    }
+
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard records={records} />;

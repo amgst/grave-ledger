@@ -81,8 +81,34 @@ const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, su
     setIsScanning(true);
 
     try {
-      const base64Data = formData.imageUrl.split(',')[1];
-      const mimeType = formData.imageUrl.split(';')[0].split(':')[1];
+      let base64Data = '';
+      let mimeType = '';
+
+      if (formData.imageUrl.startsWith('data:')) {
+        base64Data = formData.imageUrl.split(',')[1];
+        mimeType = formData.imageUrl.split(';')[0].split(':')[1];
+      } else {
+        // Handle Remote URL (Firebase Storage)
+        try {
+          const response = await fetch(formData.imageUrl);
+          const blob = await response.blob();
+          mimeType = blob.type;
+          base64Data = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              resolve(base64);
+            };
+            reader.readAsDataURL(blob);
+          });
+        } catch (e) {
+          console.error("Error fetching image for scan:", e);
+          alert("تصویر تک رسائی میں مسئلہ ہے۔ اگر یہ نئی تصویر ہے تو براہ کرم صفحہ ریفریش کریں۔");
+          setIsScanning(false);
+          return;
+        }
+      }
+
       const result = await extractGraveInfoFromImage(base64Data, mimeType);
 
       if (result) {

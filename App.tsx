@@ -175,28 +175,28 @@ const App: React.FC = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50" dir="rtl">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50" dir="ltr">
         <div className="w-full max-w-md bg-white rounded-3xl shadow-lg border border-slate-200 p-8 space-y-6">
-          <h1 className="text-xl font-bold text-slate-800 text-right">Admin Login</h1>
-          <p className="text-sm text-slate-500 text-right">Only authorized admins can access this record.</p>
+          <h1 className="text-xl font-bold text-slate-800 text-left">Admin Login</h1>
+          <p className="text-sm text-slate-500 text-left">Only authorized admins can access this record.</p>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-slate-700 text-right">Email</label>
+              <label className="block text-sm font-medium text-slate-700 text-left">Email</label>
               <input
                 type="email"
                 autoComplete="username"
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-right focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-slate-700 text-right">Password</label>
+              <label className="block text-sm font-medium text-slate-700 text-left">Password</label>
               <input
                 type="password"
                 autoComplete="current-password"
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-right focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -214,7 +214,7 @@ const App: React.FC = () => {
               </label>
             </div>
             {authError && (
-              <div className="text-sm text-red-600 text-right">
+              <div className="text-sm text-red-600 text-left">
                 {authError}
               </div>
             )}

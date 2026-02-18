@@ -9,15 +9,65 @@ interface GraveTableProps {
 }
 
 type ViewMode = 'card' | 'list';
+type SortOption =
+  | 'createdAtDesc'
+  | 'nameAsc'
+  | 'nameDesc'
+  | 'graveAsc'
+  | 'graveDesc'
+  | 'dateOfDeathAsc'
+  | 'dateOfDeathDesc'
+  | 'ageAsc'
+  | 'ageDesc';
 
 const GraveTable: React.FC<GraveTableProps> = ({ records, onEdit }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('card');
+  const [sortOption, setSortOption] = useState<SortOption>('createdAtDesc');
 
   const filteredRecords = records.filter(record => 
     record.deceasedFullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     record.graveNumber.includes(searchTerm)
   );
+
+  const sortedRecords = [...filteredRecords].sort((a, b) => {
+    switch (sortOption) {
+      case 'nameAsc':
+        return a.deceasedFullName.localeCompare(b.deceasedFullName, undefined, { sensitivity: 'base' });
+      case 'nameDesc':
+        return b.deceasedFullName.localeCompare(a.deceasedFullName, undefined, { sensitivity: 'base' });
+      case 'graveAsc': {
+        const aNum = parseInt(a.graveNumber.replace(/\D/g, '')) || 0;
+        const bNum = parseInt(b.graveNumber.replace(/\D/g, '')) || 0;
+        return aNum - bNum;
+      }
+      case 'graveDesc': {
+        const aNum = parseInt(a.graveNumber.replace(/\D/g, '')) || 0;
+        const bNum = parseInt(b.graveNumber.replace(/\D/g, '')) || 0;
+        return bNum - aNum;
+      }
+      case 'dateOfDeathAsc': {
+        const aTime = a.dateOfDeath ? new Date(a.dateOfDeath).getTime() : 0;
+        const bTime = b.dateOfDeath ? new Date(b.dateOfDeath).getTime() : 0;
+        return aTime - bTime;
+      }
+      case 'dateOfDeathDesc': {
+        const aTime = a.dateOfDeath ? new Date(a.dateOfDeath).getTime() : 0;
+        const bTime = b.dateOfDeath ? new Date(b.dateOfDeath).getTime() : 0;
+        return bTime - aTime;
+      }
+      case 'ageAsc':
+        return a.ageAtDeath - b.ageAtDeath;
+      case 'ageDesc':
+        return b.ageAtDeath - a.ageAtDeath;
+      case 'createdAtDesc':
+      default: {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      }
+    }
+  });
 
   return (
     <div className="space-y-6 pb-10" dir="rtl">
@@ -33,6 +83,23 @@ const GraveTable: React.FC<GraveTableProps> = ({ records, onEdit }) => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+
+        <div className="flex items-center gap-3">
+          <select
+            className="bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            value={sortOption}
+            onChange={(e) => setSortOption(e.target.value as SortOption)}
+          >
+            <option value="createdAtDesc">Newest first</option>
+            <option value="nameAsc">Name A–Z</option>
+            <option value="nameDesc">Name Z–A</option>
+            <option value="graveAsc">Grave number ↑</option>
+            <option value="graveDesc">Grave number ↓</option>
+            <option value="dateOfDeathAsc">Date of death ↑</option>
+            <option value="dateOfDeathDesc">Date of death ↓</option>
+            <option value="ageAsc">Age ↑</option>
+            <option value="ageDesc">Age ↓</option>
+          </select>
 
         <div className="bg-slate-50 p-1.5 rounded-2xl border border-slate-200 flex items-center gap-1 shrink-0 self-end md:self-center">
           <button 
@@ -50,17 +117,18 @@ const GraveTable: React.FC<GraveTableProps> = ({ records, onEdit }) => {
             <span>فہرست</span>
           </button>
         </div>
+        </div>
       </div>
 
       {/* Records Display */}
-      {filteredRecords.length > 0 ? (
+      {sortedRecords.length > 0 ? (
         <div className={viewMode === 'card' 
           ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
           : "bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm"
         }>
           {viewMode === 'card' ? (
             // ENHANCED CARD LAYOUT
-            filteredRecords.map((record) => (
+            sortedRecords.map((record) => (
               <div 
                 key={record.id} 
                 className="group bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:border-emerald-100 transition-all duration-300 relative overflow-hidden flex flex-col text-right cursor-pointer"
@@ -140,11 +208,11 @@ const GraveTable: React.FC<GraveTableProps> = ({ records, onEdit }) => {
                   </div>
                 </div>
                 
-                {/* Floating Edit Button */}
+                {/* Floating Edit Icon (no delete here) */}
                 <div className="absolute top-4 left-4 transform -translate-x-12 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300">
-                   <button className="p-3 bg-white text-emerald-600 rounded-full shadow-lg border border-emerald-50 hover:bg-emerald-600 hover:text-white transition-all">
-                      <Edit2 size={18} />
-                   </button>
+                  <div className="p-3 bg-white text-emerald-600 rounded-full shadow-lg border border-emerald-50">
+                    <Edit2 size={18} />
+                  </div>
                 </div>
               </div>
             ))
@@ -163,7 +231,7 @@ const GraveTable: React.FC<GraveTableProps> = ({ records, onEdit }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {filteredRecords.map((record) => (
+                  {sortedRecords.map((record) => (
                     <tr 
                       key={record.id} 
                       className="hover:bg-emerald-50/30 transition-colors cursor-pointer group"
@@ -211,7 +279,10 @@ const GraveTable: React.FC<GraveTableProps> = ({ records, onEdit }) => {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <button className="p-2.5 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all">
+                        <button
+                          type="button"
+                          className="p-2.5 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                        >
                           <Edit2 size={18} />
                         </button>
                       </td>

@@ -6,9 +6,10 @@ interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onLogout?: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, onLogout }) => {
   const navItems = [
     { id: 'dashboard', label: 'اعداد و شمار', icon: Home },
     { id: 'records', label: 'ریکارڈ', icon: List },
@@ -24,6 +25,14 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
           <BookOpen className="text-emerald-700" size={24} />
           <h1 className="font-bold text-lg text-slate-800 tracking-tight">قبرستان کا ریکارڈ</h1>
         </div>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="px-3 py-1.5 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+          >
+            لاگ آؤٹ
+          </button>
+        )}
       </header>
 
       {/* Main Content Area - Increased max-width to 6xl for better desktop usage */}

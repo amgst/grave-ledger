@@ -11,9 +11,10 @@ interface GraveFormProps {
   onCancel: () => void;
   initialData?: GraveRecord;
   suggestedGraveNumber?: string;
+  onDelete?: () => void;
 }
 
-const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, suggestedGraveNumber }) => {
+const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, suggestedGraveNumber, onDelete }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     deceasedFullName: initialData?.deceasedFullName || '',
@@ -378,6 +379,15 @@ const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, su
         >
           {initialData ? 'تبدیلیاں محفوظ کریں' : 'ریکارڈ محفوظ کریں'}
         </button>
+        {initialData && onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="w-full py-4 bg-red-600 text-white rounded-2xl font-bold shadow-lg shadow-red-700/20 active:scale-95 transition-transform"
+          >
+            Delete record
+          </button>
+        )}
         <button
           type="button"
           onClick={onCancel}

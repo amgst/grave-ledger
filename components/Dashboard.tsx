@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { GraveRecord } from '../types';
+import { GraveRecord, Gender } from '../types';
 import { Users, Hash, Calendar, ArrowLeft } from 'lucide-react';
 
 interface DashboardProps {
@@ -16,13 +16,16 @@ const Dashboard: React.FC<DashboardProps> = ({ records }) => {
     new Date(r.dateOfDeath).getFullYear() === new Date().getFullYear()
   ).length;
 
+  const maleCount = records.filter(r => r.gender === Gender.MALE).length;
+  const femaleCount = records.filter(r => r.gender === Gender.FEMALE).length;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 text-right" dir="rtl">
       <div className="bg-emerald-800 rounded-3xl p-8 text-white shadow-xl shadow-emerald-900/20">
         <h1 className="text-2xl font-bold mb-1">خلاصہ</h1>
         <p className="text-emerald-100/70 text-sm mb-6">قبرستان کے ریکارڈ کا جائزہ۔</p>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-sm">
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 mb-1">کل ریکارڈ</p>
             <div className="flex items-center justify-between">
@@ -35,6 +38,20 @@ const Dashboard: React.FC<DashboardProps> = ({ records }) => {
             <div className="flex items-center justify-between">
               <span className="text-3xl font-bold">{avgAge}</span>
               <Calendar size={20} className="text-emerald-400" />
+            </div>
+          </div>
+          <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-sm">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 mb-1">مرد دفن شدہ</p>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold">{maleCount}</span>
+              <Users size={20} className="text-emerald-400" />
+            </div>
+          </div>
+          <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-sm">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 mb-1">خواتین دفن شدہ</p>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold">{femaleCount}</span>
+              <Users size={20} className="text-emerald-400" />
             </div>
           </div>
         </div>

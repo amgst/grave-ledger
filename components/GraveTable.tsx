@@ -1,7 +1,10 @@
 
 import React, { useState } from 'react';
 import { GraveRecord, Gender } from '../types';
-import { Search, User, Hash, Edit2, Phone, Heart, Image as ImageIcon, LayoutGrid, List as ListIcon, Calendar, Info, MapPin } from 'lucide-react';
+import { Search, User, Hash, Edit2, Phone, Heart, Image as ImageIcon, LayoutGrid, List as ListIcon, Calendar, Info, MapPin, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 
 interface GraveTableProps {
   records: GraveRecord[];
@@ -18,7 +21,9 @@ type SortOption =
   | 'dateOfDeathAsc'
   | 'dateOfDeathDesc'
   | 'ageAsc'
-  | 'ageDesc';
+  | 'ageDesc'
+  | 'createdAtAsc'
+  | 'createdAtDesc';
 
 const GraveTable: React.FC<GraveTableProps> = ({ records, onEdit }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,6 +65,11 @@ const GraveTable: React.FC<GraveTableProps> = ({ records, onEdit }) => {
         return a.ageAtDeath - b.ageAtDeath;
       case 'ageDesc':
         return b.ageAtDeath - a.ageAtDeath;
+      case 'createdAtAsc': {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return aTime - bTime;
+      }
       case 'createdAtDesc':
       default: {
         const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -68,6 +78,59 @@ const GraveTable: React.FC<GraveTableProps> = ({ records, onEdit }) => {
       }
     }
   });
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    // Sort records from oldest to newest (by createdAt)
+    const exportRecords = [...records].sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return aTime - bTime;
+    });
+
+    const tableData = exportRecords.map(record => [
+      record.graveNumber,
+      record.deceasedFullName,
+      record.parentNames || '-',
+      record.husbandName || '-',
+      record.dateOfDeath ? new Date(record.dateOfDeath).toLocaleDateString('en-GB') : '-',
+      record.ageAtDeath.toString(),
+      record.relativeContact || '-'
+    ]);
+
+    autoTable(doc, {
+      head: [['Grave #', 'Name', 'Parent Names', 'Husband Name', 'Date of Death', 'Age', 'Contact']],
+      body: tableData,
+      styles: {
+        font: 'helvetica',
+        fontSize: 10,
+        cellPadding: 3,
+        halign: 'center'
+      },
+      headStyles: {
+        fillColor: [16, 185, 129], // Emerald 500
+        textColor: 255,
+        fontSize: 11,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252] // Slate 50
+      },
+      margin: { top: 20 },
+      didDrawPage: (data) => {
+        doc.setFontSize(16);
+        doc.setTextColor(30, 41, 59); // Slate 800
+        doc.text('Grave Ledger Records (Oldest to Newest)', data.settings.margin.left, 15);
+      }
+    });
+
+    doc.save(`grave-ledger-export-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   return (
     <div className="space-y-6 pb-10" dir="rtl">
@@ -91,6 +154,7 @@ const GraveTable: React.FC<GraveTableProps> = ({ records, onEdit }) => {
             onChange={(e) => setSortOption(e.target.value as SortOption)}
           >
             <option value="createdAtDesc">Newest first</option>
+            <option value="createdAtAsc">Oldest first</option>
             <option value="nameAsc">Name A–Z</option>
             <option value="nameDesc">Name Z–A</option>
             <option value="graveAsc">Grave number ↑</option>
@@ -100,6 +164,14 @@ const GraveTable: React.FC<GraveTableProps> = ({ records, onEdit }) => {
             <option value="ageAsc">Age ↑</option>
             <option value="ageDesc">Age ↓</option>
           </select>
+
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-2xl text-sm font-bold hover:bg-emerald-700 transition-all shadow-sm"
+          >
+            <Download size={18} />
+            <span className="hidden sm:inline">PDF ایکسپورٹ</span>
+          </button>
 
         <div className="bg-slate-50 p-1.5 rounded-2xl border border-slate-200 flex items-center gap-1 shrink-0 self-end md:self-center">
           <button 

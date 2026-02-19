@@ -49,23 +49,66 @@ const GraveForm: React.FC<GraveFormProps> = ({ onSave, onCancel, initialData, su
     }
   }, [formData.dateOfBirth, formData.dateOfDeath]);
 
+  const resizeImage = (file: File, maxWidth = 1280, maxHeight = 1280, quality = 0.8): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
+        width = width * ratio;
+        height = height * ratio;
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              resolve(file);
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => reject(new Error('Image load error'));
+      const reader = new FileReader();
+      reader.onload = () => {
+        img.src = reader.result as string;
+      };
+      reader.onerror = () => reject(new Error('File read error'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!storage) {
-        // Fallback for when storage is not configured yet (or if import fails)
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
-        };
-        reader.readAsDataURL(file);
-        return;
-      }
-
       setIsUploading(true);
       try {
-        const storageRef = ref(storage, `grave-images/${Date.now()}_${file.name}`);
-        await uploadBytes(storageRef, file);
+        const optimizedBlob = await resizeImage(file);
+        if (!storage) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
+          };
+          reader.readAsDataURL(optimizedBlob);
+          return;
+        }
+        const uploadFile =
+          optimizedBlob instanceof File
+            ? optimizedBlob
+            : new File([optimizedBlob], file.name.replace(/\.[^/.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+        const storageRef = ref(storage, `grave-images/${Date.now()}_${uploadFile.name}`);
+        await uploadBytes(storageRef, uploadFile);
         const url = await getDownloadURL(storageRef);
         setFormData(prev => ({ ...prev, imageUrl: url }));
       } catch (error) {
